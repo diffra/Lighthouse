@@ -3,12 +3,8 @@ services:
   python:
     build: ./app
     container_name: Lighthouse
-    #ports:
-    #  - "5080:5080"
     stdin_open: true
     tty: true
-    volumes:
-      - ./tmp:/app
     environment:
       - checkInterval
       - twitchUrl
