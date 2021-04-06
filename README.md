@@ -1,5 +1,5 @@
 # Lighthouse
-Service to auto-post to social media when a streamer goes live
+Service to auto-post to social media when a streamer goes live. Built with Docker/Python/Selenium
 
 ## Requirements
 * Linux machine with docker and docker-compose installed
