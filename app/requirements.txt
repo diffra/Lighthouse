@@ -1,0 +1,8 @@
+beautifulsoup4
+requests
+redis
+APScheduler
+selenium
+praw
+twitter
+facebook-sdk

@@ -1,0 +1,112 @@
+version: "3"
+services:
+  python:
+    build: ./app
+    container_name: Lighthouse
+    #ports:
+    #  - "5080:5080"
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./tmp:/app
+    environment:
+      - checkInterval
+      - twitchUrl
+      - youTubeUrl
+      - instaUrl
+      - instaUsername
+      - instaPassword
+      - streamerName
+      - redditClientId
+      - redditClientSecret
+      - redditUsername
+      - redditPassword
+      - redditSub
+      - twitterApiKey
+      - twitterSecretKey
+      - twitterBearerToken
+      - twitterAccessToken
+      - twitterAccessTokenSecret
+      - fbGroup
+      - facebookUsername
+      - facebookPassword
+    networks:
+      - selenium-grid
+    depends_on: 
+      - hub
+      - redis
+  
+  redis: 
+    image: "redis:alpine"
+    volumes:
+      - ./redis:/data
+    networks:
+     - selenium-grid
+  
+  vpn:
+    image: dperson/openvpn-client
+    # cap_add, security_opt, and volume required for the image to function
+    cap_add:
+      - net_admin
+    environment:
+      TZ: 'EST5EDT'
+    networks:
+      - selenium-grid
+    # if using '-d' or 'DNS' you can't enable the `read_only: true` option
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+    restart: unless-stopped
+    security_opt:
+      - label:disable
+    stdin_open: true
+    tty: true
+    volumes:
+      - /dev/net:/dev/net:z
+      - ./vpn:/vpn
+
+
+  hub:
+    image: selenium/hub:latest
+    environment:
+      GRID_MAX_SESSION: 3
+    ports:
+      - 4444:4444
+    networks:
+      - selenium-grid
+      - default
+
+  chrome:
+    image: selenium/node-chrome:latest
+    environment:
+      - HUB_PORT_4444_TCP_ADDR=hub
+      - HUB_PORT_4444_TCP_PORT=4444
+      - NODE_MAX_INSTANCES=2
+      - NODE_MAX_SESSION=2
+      - JAVA_OPTS=-Dwebdriver.chrome.whitelistedIps=
+      - VNC_PASSWORD=password
+      - NODE_PORT=5555
+    depends_on:
+      - hub
+      - vpn
+
+  firefox:
+    image: selenium/node-firefox:latest
+    environment:
+      - HUB_PORT_4444_TCP_ADDR=hub
+      - HUB_PORT_4444_TCP_PORT=4444
+      - NODE_MAX_INSTANCES=2
+      - NODE_MAX_SESSION=2
+      - JAVA_OPTS=-Dwebdriver.firefox.whitelistedIps=
+      - VNC_PASSWORD=password
+      - NODE_PORT=5556
+    networks:
+      - selenium-grid  
+    depends_on:
+      - hub
+
+networks:
+  selenium-grid:
+    driver: bridge
+
