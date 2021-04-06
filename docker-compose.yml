@@ -42,31 +42,7 @@ services:
       - ./redis:/data
     networks:
      - selenium-grid
-  
-  vpn:
-    image: dperson/openvpn-client
-    # cap_add, security_opt, and volume required for the image to function
-    cap_add:
-      - net_admin
-    environment:
-      TZ: 'EST5EDT'
-    networks:
-      - selenium-grid
-    # if using '-d' or 'DNS' you can't enable the `read_only: true` option
-    read_only: true
-    tmpfs:
-      - /run
-      - /tmp
-    restart: unless-stopped
-    security_opt:
-      - label:disable
-    stdin_open: true
-    tty: true
-    volumes:
-      - /dev/net:/dev/net:z
-      - ./vpn:/vpn
-
-
+     
   hub:
     image: selenium/hub:latest
     environment:
@@ -87,9 +63,10 @@ services:
       - JAVA_OPTS=-Dwebdriver.chrome.whitelistedIps=
       - VNC_PASSWORD=password
       - NODE_PORT=5555
+    networks:
+      - selenium-grid  
     depends_on:
       - hub
-      - vpn
 
   firefox:
     image: selenium/node-firefox:latest
