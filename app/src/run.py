@@ -244,7 +244,7 @@ def pushUpdateToTwitter(source):
   #TODO: add error handling
 
 def pushUpdateToFacebook(source):
-  #First of all, screw facebook, okay.
+  #First of all, facebook sucks, okay.
   #They make screen scraping all but impossible.
   #/rant
   global firefox_options
