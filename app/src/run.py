@@ -90,7 +90,9 @@ def getStreamUrl(source):
   else:
     return False
 
-#TODO ideally redis should be saving this and maybe it is...
+#TODO Figure out a reliable way to check if the schema exists already in redis. As a hack
+# for now we just set them at the beginning. This risks clobbering a '1' and not sending 
+# the alert
 setvalue(r,'YouTube', int(0))
 setvalue(r,'Twitch', int(0))
 setvalue(r,'Insta', int(0))
@@ -244,9 +246,11 @@ def pushUpdateToTwitter(source):
   #TODO: add error handling
 
 def pushUpdateToFacebook(source):
-  #First of all, facebook sucks, okay.
-  #They make screen scraping all but impossible.
-  #/rant
+  #####
+  #
+  #Grumblings about facebook's anti-screen scraping measures go here
+  #
+  #####
   global firefox_options
 
   print("PFB: Starting up...")
@@ -269,22 +273,15 @@ def pushUpdateToFacebook(source):
   time.sleep(1)
   pasw.send_keys(facebookPassword)
   time.sleep(3)
-  #driver.save_screenshot("/app/screenshot1.png")
   action = webdriver.common.action_chains.ActionChains(driver)
   action.send_keys(webdriver.common.keys.Keys.TAB)
   action.send_keys(webdriver.common.keys.Keys.TAB)
   action.send_keys(webdriver.common.keys.Keys.ENTER)
   action.perform()
-  time.sleep(1)
-  #driver.save_screenshot("/app/screenshot2.png")
-  time.sleep(1)
-  #driver.save_screenshot("/app/screenshot2.1.png")
-  time.sleep(1)
-  #driver.save_screenshot("/app/screenshot2.2.png")
+  time.sleep(3)
   print("PFB: Loading group")
   driver.get(fbGroup)
   time.sleep(3)
-  #driver.save_screenshot("/app/screenshot3.png")
   print("PFB: Creating post...")
   action = webdriver.common.action_chains.ActionChains(driver)
   action.move_by_offset(630, 307)
@@ -296,7 +293,6 @@ def pushUpdateToFacebook(source):
   actions.send_keys(streamerName + ' is currently live on ' + source + '. Check it out here: ' + streamUrl)
   actions.perform()
   print("PFB: Taking screenshot...")
-  #driver.save_screenshot("/app/screenshot4.png")
   time.sleep(1)
   action = webdriver.common.action_chains.ActionChains(driver)
   action.send_keys(webdriver.common.keys.Keys.TAB)
@@ -310,7 +306,6 @@ def pushUpdateToFacebook(source):
   action.send_keys(webdriver.common.keys.Keys.ENTER)
   action.perform()
   time.sleep(1)
-  #driver.save_screenshot("/app/screenshot4.png")
   driver.quit()   
 
 ########################
