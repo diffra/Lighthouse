@@ -26,8 +26,6 @@ services:
       - fbGroup
       - facebookUsername
       - facebookPassword
-    networks:
-      - selenium-grid
     depends_on: 
       - hub
       - redis
@@ -36,9 +34,7 @@ services:
     image: "redis:alpine"
     volumes:
       - ./redis:/data
-    networks:
-     - selenium-grid
-     
+
   hub:
     image: selenium/hub:latest
     environment:
@@ -57,7 +53,6 @@ services:
       - NODE_MAX_INSTANCES=2
       - NODE_MAX_SESSION=2
       - JAVA_OPTS=-Dwebdriver.chrome.whitelistedIps=
-      - VNC_PASSWORD=password
       - NODE_PORT=5555
     networks:
       - selenium-grid  
@@ -72,7 +67,6 @@ services:
       - NODE_MAX_INSTANCES=2
       - NODE_MAX_SESSION=2
       - JAVA_OPTS=-Dwebdriver.firefox.whitelistedIps=
-      - VNC_PASSWORD=password
       - NODE_PORT=5556
     networks:
       - selenium-grid  
