@@ -120,7 +120,7 @@ def checkInsta(r):
   print("CIG: Loading home page")
 
   driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')  
-
+  driver.save_screenshot("/app/screenshot.png")
   time.sleep(3)
   #print(driver.page_source.encode("utf-8"))
   user = driver.find_element_by_name('username')
@@ -129,11 +129,14 @@ def checkInsta(r):
   user.send_keys(instaUsername)
   time.sleep(1)
   pasw.send_keys(instaPassword)
-  time.sleep(3)
+  time.sleep(1)
+  driver.save_screenshot("/app/screenshot2.png")
   pasw.send_keys(webdriver.common.keys.Keys.RETURN)
+  time.sleep(2)
   print("CIG: Checking page")
   driver.get(instaUrl)
   time.sleep(3)
+  driver.save_screenshot("/app/screenshot3.png")
   #data-testid="live-badge"          "//span[@aria-label='LIVE']"
   if (driver.find_elements_by_xpath("//span[@data-testid='live-badge']")):
     #Live
@@ -240,8 +243,9 @@ def pushUpdateToTwitter(source):
     auth=OAuth(twitterAccessToken, twitterAccessTokenSecret, twitterApiKey, twitterSecretKey))
   streamUrl=getStreamUrl(source)
   title = streamerName + ' is currently live on ' + source + '. Check it out here: ' + streamUrl
-  selftext = 'Tune in at: ' + streamUrl
-  t.statuses.update(status="")
+  selftext = '  Tune in at: ' + streamUrl
+  twitterstatus=title
+  t.statuses.update(status=twitterstatus)
   print("PU: Twitter updated")
   #TODO: add error handling
 
