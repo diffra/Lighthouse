@@ -233,7 +233,7 @@ def pushUpdateToReddit(source):
   subreddit = reddit.subreddit(redditSub) # Initialize the subreddit to a variable
   title = streamerName + 'is currently live on ' + source
   selftext = 'Tune in at: ' + streamUrl
-  subreddit.submit(title,selftext=selftext)
+  #subreddit.submit(title,selftext=selftext)
   print("PU: Reddit updated")
   #TODO: add error handling
 
@@ -244,7 +244,7 @@ def pushUpdateToTwitter(source):
   streamUrl=getStreamUrl(source)
   title = streamerName + ' is currently live on ' + source + '. Check it out here: ' + streamUrl
   selftext = '  Tune in at: ' + streamUrl
-  twitterstatus=title
+  twitterstatus=title + selftext
   t.statuses.update(status=twitterstatus)
   print("PU: Twitter updated")
   #TODO: add error handling
