@@ -120,7 +120,7 @@ def checkInsta(r):
   print("CIG: Loading home page")
 
   driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')  
-  driver.save_screenshot("/app/screenshot.png")
+  #driver.save_screenshot("/app/screenshot.png")
   time.sleep(3)
   #print(driver.page_source.encode("utf-8"))
   user = driver.find_element_by_name('username')
@@ -130,13 +130,13 @@ def checkInsta(r):
   time.sleep(1)
   pasw.send_keys(instaPassword)
   time.sleep(1)
-  driver.save_screenshot("/app/screenshot2.png")
+  #driver.save_screenshot("/app/screenshot2.png")
   pasw.send_keys(webdriver.common.keys.Keys.RETURN)
   time.sleep(2)
   print("CIG: Checking page")
   driver.get(instaUrl)
   time.sleep(3)
-  driver.save_screenshot("/app/screenshot3.png")
+  #driver.save_screenshot("/app/screenshot3.png")
   #data-testid="live-badge"          "//span[@aria-label='LIVE']"
   if (driver.find_elements_by_xpath("//span[@data-testid='live-badge']")):
     #Live
@@ -296,7 +296,6 @@ def pushUpdateToFacebook(source):
   streamUrl=getStreamUrl(source)
   actions.send_keys(streamerName + ' is currently live on ' + source + '. Check it out here: ' + streamUrl)
   actions.perform()
-  print("PFB: Taking screenshot...")
   time.sleep(1)
   action = webdriver.common.action_chains.ActionChains(driver)
   action.send_keys(webdriver.common.keys.Keys.TAB)
