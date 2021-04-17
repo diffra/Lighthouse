@@ -61,20 +61,24 @@ firefox_options.add_argument("-headless")
 #
 ##########
 
+def log(logtext):
+  print(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " " + logtext)
+  with open('/app/log', 'a') as f: f.write(datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S") + " " + logtext + '\n')
+
 #helper functions in lieu of building a real object
 def getvalue(r, key):
-  return r.hget('LiveStatus', key)
+  return int(r.hget('LiveStatus', key))
 def setvalue(r, key, value):
   r.hset('LiveStatus', key, int(value))
 
 def maybeUpdateRedis(r, source, newstatus):
   oldstatus = getvalue(r, source)
-  #print("MaybeUpdateRedis: o:" + str(oldstatus) + " n:" + str(newstatus))
+  #log("MaybeUpdateRedis: o:" + str(oldstatus) + " n:" + str(newstatus))
   if (int(oldstatus) != int(newstatus)):
     #don't update status to 1 if it's already 2, only back to zero.
     if (newstatus == 0 or (int(newstatus) == int(1) and int(oldstatus) == int(0))):
-      #print("Setting value")
-      setvalue(r, source, newstatus)
+      #log("Setting value")
+      setvalue(r, source, int(newstatus))
 
 def getStreamUrl(source):
   global youTubeUrl
@@ -90,12 +94,19 @@ def getStreamUrl(source):
   else:
     return False
 
-#TODO Figure out a reliable way to check if the schema exists already in redis. As a hack
-# for now we just set them at the beginning. This risks clobbering a '1' and not sending 
-# the alert
-setvalue(r,'YouTube', int(0))
-setvalue(r,'Twitch', int(0))
-setvalue(r,'Insta', int(0))
+#If lastPostedTime hasn't been set, build out the schema.
+if r.hget('LiveStatus', 'lastPostedTime'):
+  log("Schema exists...")
+else:
+  log("Building schema...")
+  setvalue(r,'YouTube', int(0))
+  setvalue(r,'Twitch', int(0))
+  setvalue(r,'Insta', int(0))
+  setvalue(r,'lastPostedTime', int(0))
+
+
+
+
 
 ###########
 #
@@ -111,18 +122,18 @@ def checkInsta(r):
   global instaPassword
   global firefox_options
 
-  print("CIG: Starting up...")
+  log("CIG: Starting up...")
   driver = webdriver.Remote(
       command_executor='http://hub:4444/wd/hub',
       options=firefox_options,
       desired_capabilities=DesiredCapabilities.FIREFOX
   )
-  print("CIG: Loading home page")
+  log("CIG: Loading home page")
 
   driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')  
-  #driver.save_screenshot("/app/screenshot.png")
+  driver.save_screenshot("/app/screenshot.png")
   time.sleep(3)
-  #print(driver.page_source.encode("utf-8"))
+  #log(driver.page_source.encode("utf-8"))
   user = driver.find_element_by_name('username')
   pasw = driver.find_element_by_name('password')
 
@@ -130,26 +141,26 @@ def checkInsta(r):
   time.sleep(1)
   pasw.send_keys(instaPassword)
   time.sleep(1)
-  #driver.save_screenshot("/app/screenshot2.png")
+  driver.save_screenshot("/app/screenshot2.png")
   pasw.send_keys(webdriver.common.keys.Keys.RETURN)
   time.sleep(2)
-  print("CIG: Checking page")
+  log("CIG: Checking page")
   driver.get(instaUrl)
   time.sleep(3)
-  #driver.save_screenshot("/app/screenshot3.png")
+  driver.save_screenshot("/app/screenshot3.png")
   #data-testid="live-badge"          "//span[@aria-label='LIVE']"
   if (driver.find_elements_by_xpath("//span[@data-testid='live-badge']")):
     #Live
-    print("CIG: LIVE!")
+    log("CIG: LIVE!")
     maybeUpdateRedis(r,'Insta', 1)
     driver.quit() 
   else:
-    print("CIG: Not live :(")
+    log("CIG: Not live :(")
     maybeUpdateRedis(r,'Insta', 0)
     driver.quit() 
 
 def checkYouTube(r):
-  print("CYT: Starting up...")
+  log("CYT: Starting up...")
   global chrome_options
   driver = webdriver.Remote(
       command_executor='http://hub:4444/wd/hub',
@@ -159,41 +170,40 @@ def checkYouTube(r):
   
   driver.get(youTubeUrl)
   #Wait for DOM/JS to load before we check for the element 
-  print("CYT:Waiting for DOM...")
+  log("CYT: Waiting for DOM...")
   time.sleep(5)
   try:
     elements=driver.find_element_by_xpath("//span[@aria-label='LIVE']")
     #if we made it here we're live
-    print("CYT:Live!")
+    log("CYT: Live!")
     maybeUpdateRedis(r,'YouTube', 1)
   except:
     #assume not live 
-    print("CYT:Not live :(")
+    log("CYT: Not live :(")
     maybeUpdateRedis(r,'YouTube', 0)
   driver.quit() 
 
 def checkTwitch(r): 
-  print("CTW: Starting up...")
+  log("CTW: Starting up...")
   global chrome_options
   driver = webdriver.Remote(
       command_executor='http://hub:4444/wd/hub',
       options=chrome_options,
       desired_capabilities=DesiredCapabilities.CHROME
   )
-  
   driver.get(twitchUrl)
   #Wait for DOM/JS to load before we check for the element
-  print("CTW:Waiting for DOM...")
+  log("CTW: Waiting for DOM...")
   time.sleep(5)
-  try:
-    elements= driver.find_element_by_class_name("channel-status-info--offline")
+  elements=driver.find_elements_by_class_name("channel-status-info--offline")
+  if len(elements) != int(0):
     #if we made it here we're not live
-    print("CTW:Not Live :(")
+    log("CTW: Not Live :(")
     maybeUpdateRedis(r,'Twitch', 0)
-  except:
-    #No offline box? guess we're live!
-    #TODO: be more careful with what exception we catch here 
-    print("CTW:Live!")
+  else:
+    #If there's more than zero offline boxes, we are live.
+    log("CTW:Live!")
+    print(elements)
     maybeUpdateRedis(r,'Twitch', 1)
   driver.quit() 
 
@@ -208,20 +218,29 @@ def checkTwitch(r):
 ##########
 def pushUpdates(r):
   for source in ['Twitch', 'YouTube', 'Insta']:
-    if (int(getvalue(r,source)) == int(1)):
-      if(redditSub):
-        pushUpdateToReddit(source)
-      if(twitterAccessToken):
-        pushUpdateToTwitter(source)
-      if(fbGroup):
-        pushUpdateToFacebook(source)
-      print("PU: Finished pushing updates for " + source)
-      #Set value directly once we push the update
-      #TODO: check to see if update was successful first.
-      setvalue(r,source,2)
+    dtNow=datetime.datetime.now()
+    #Don't post if the last posted time is within the last 30 minutes
+    if(dtNow > (datetime.datetime.fromtimestamp(getvalue(r,'lastPostedTime')) + datetime.timedelta(minutes=30))):
+      if (int(getvalue(r,source)) == int(1)):
+        if(redditSub):
+          #pushUpdateToReddit(source)
+          pass
+        if(twitterAccessToken):
+          #pushUpdateToTwitter(source)
+          pass
+        if(fbGroup):
+          #pushUpdateToFacebook(source)
+          pass
+        log("PU: Finished pushing updates for " + source)
+        #Set value directly once we push the update
+        #TODO: check to see if update was successful first.
+        #TODO: debounce if a streamer goes live, then offline, then live again
+        #Potentially Done!
+        setvalue(r,source,int(2))
+        setvalue(r,'lastPostedTime', datetime.datetime.timestamp(datetime.datetime.now()))
 
 def pushUpdateToReddit(source):
-  print("PU: Updating Reddit...")
+  log("PU: Updating Reddit...")
   reddit = praw.Reddit(
     client_id=redditClientId,
     client_secret=redditClientSecret,
@@ -234,11 +253,11 @@ def pushUpdateToReddit(source):
   title = streamerName + 'is currently live on ' + source
   selftext = 'Tune in at: ' + streamUrl
   subreddit.submit(title,selftext=selftext)
-  print("PU: Reddit updated")
+  log("PU: Reddit updated")
   #TODO: add error handling
 
 def pushUpdateToTwitter(source):
-  print("PU: Updating Twitter...")
+  log("PU: Updating Twitter...")
   t = Twitter(
     auth=OAuth(twitterAccessToken, twitterAccessTokenSecret, twitterApiKey, twitterSecretKey))
   streamUrl=getStreamUrl(source)
@@ -246,7 +265,7 @@ def pushUpdateToTwitter(source):
   selftext = '  Tune in at: ' + streamUrl
   twitterstatus=title + selftext
   t.statuses.update(status=twitterstatus)
-  print("PU: Twitter updated")
+  log("PU: Twitter updated")
   #TODO: add error handling
 
 def pushUpdateToFacebook(source):
@@ -257,19 +276,19 @@ def pushUpdateToFacebook(source):
   #####
   global firefox_options
 
-  print("PFB: Starting up...")
+  log("PFB: Starting up...")
   driver = webdriver.Remote(
       command_executor='http://hub:4444/wd/hub',
       options=firefox_options,
       desired_capabilities=DesiredCapabilities.FIREFOX
   )
-  print("PFB: Loading home page")
+  log("PFB: Loading home page")
 
   driver.get('https://www.facebook.com/')  
 
   time.sleep(3)
   
-  #print(driver.page_source.encode("utf-8"))
+  #log(driver.page_source.encode("utf-8"))
   user = driver.find_element_by_name('email')
   pasw = driver.find_element_by_name('pass')
 
@@ -283,10 +302,10 @@ def pushUpdateToFacebook(source):
   action.send_keys(webdriver.common.keys.Keys.ENTER)
   action.perform()
   time.sleep(3)
-  print("PFB: Loading group")
+  log("PFB: Loading group")
   driver.get(fbGroup)
   time.sleep(3)
-  print("PFB: Creating post...")
+  log("PFB: Creating post...")
   action = webdriver.common.action_chains.ActionChains(driver)
   action.move_by_offset(630, 307)
   action.click()
@@ -296,6 +315,7 @@ def pushUpdateToFacebook(source):
   streamUrl=getStreamUrl(source)
   actions.send_keys(streamerName + ' is currently live on ' + source + '. Check it out here: ' + streamUrl)
   actions.perform()
+  log("PFB: Taking screenshot...")
   time.sleep(1)
   action = webdriver.common.action_chains.ActionChains(driver)
   action.send_keys(webdriver.common.keys.Keys.TAB)
@@ -338,11 +358,17 @@ try:
         #use this thread to post status periodically
         time.sleep(60)
         if(youTubeUrl):
-          print('Youtube status: ' + getvalue(r, 'YouTube'))
+          log('Youtube status: ' + str(getvalue(r, 'YouTube')))
         if(twitchUrl):
-          print('Twitch status: ' + getvalue(r, 'Twitch'))
+          log('Twitch status: ' + str(getvalue(r, 'Twitch')))
         if(instaUrl):
-          print('Insta status: ' + getvalue(r, 'Insta'))
+          log('Insta status: ' + str(getvalue(r, 'Insta')))
+        lastPostedTime=getvalue(r, 'lastPostedTime')
+        if(lastPostedTime==int(0)):
+          log('Last posted time: Never')
+        else:
+          log('Last posted time: ' + datetime.datetime.fromtimestamp(getvalue(r, 'lastPostedTime')).strftime("%m/%d/%Y, %H:%M:%S"))
+
 except KeyboardInterrupt:
-    print('interrupted!')
+    log('interrupted!')
     s.shutdown()
