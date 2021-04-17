@@ -131,7 +131,7 @@ def checkInsta(r):
   log("CIG: Loading home page")
 
   driver.get('https://www.instagram.com/accounts/login/?source=auth_switcher')  
-  driver.save_screenshot("/app/screenshot.png")
+  # driver.save_screenshot("/app/screenshot.png")
   time.sleep(3)
   #log(driver.page_source.encode("utf-8"))
   user = driver.find_element_by_name('username')
